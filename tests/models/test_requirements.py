@@ -3,7 +3,7 @@ import os
 import pytest
 
 from pdm.models.pip_shims import path_to_url
-from pdm.models.requirements import RequirementError, parse_requirement
+from pdm.models.requirements import RequirementError, FileRequirement, parse_requirement
 from tests import FIXTURES
 
 FILE_PREFIX = "file:///" if os.name == "nt" else "file://"
@@ -84,3 +84,25 @@ def test_not_supported_editable_requirement(line):
         RequirementError, match="Editable requirement is only supported"
     ):
         parse_requirement(line, True)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {
+            "url": "file:///${PROJECT_ROOT}/tests/fixtures/projects/demo",
+            "editable": True,
+        },
+        {
+            "path": (FIXTURES / "projects/demo").as_posix(),
+            "editable": True,
+        },
+    ],
+)
+def test_file_requirement_parsing(kwargs):
+    req = FileRequirement.create(**kwargs)
+    assert req.url == FILE_PREFIX + (FIXTURES / "projects/demo").as_posix()
+    assert req.path == FIXTURES / "projects/demo"
+    assert req.editable
+    expected_line = "-e file:///${PROJECT_ROOT}/tests/fixtures/projects/demo#egg=demo"
+    assert req.as_line() == expected_line

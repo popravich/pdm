@@ -285,14 +285,11 @@ class FileRequirement(Requirement):
                 )
         else:
             try:
-                self.path = Path(
-                    url_to_path(
-                        self.url.replace(
-                            "${PROJECT_ROOT}",
-                            Path(".").absolute().as_posix().lstrip("/"),
-                        )
-                    )
+                self.url = self.url.replace(
+                    "${PROJECT_ROOT}",
+                    Path(".").absolute().as_posix().lstrip("/"),
                 )
+                self.path = Path(url_to_path(self.url))
             except AssertionError:
                 pass
         self._parse_name_from_url()
@@ -311,6 +308,12 @@ class FileRequirement(Requirement):
         marker = self._format_marker()
         url = url_without_fragments(self.url)
         if self.editable or self.subdirectory:
+            assert self.url.startswith('file://')
+            root_dir = Path('.').absolute()
+            if self.path.is_relative_to(root_dir):
+                url = path_to_url(self.path).replace(
+                    root_dir.as_posix().lstrip("/"), "${PROJECT_ROOT}",
+                )
             fragments = f"egg={project_name}{extras}"
             if self.subdirectory:
                 fragments = f"{fragments}&subdirectory={self.subdirectory}"
