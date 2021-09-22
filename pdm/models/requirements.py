@@ -310,7 +310,12 @@ class FileRequirement(Requirement):
         if self.editable or self.subdirectory:
             assert self.url.startswith('file://')
             root_dir = Path('.').absolute()
-            if self.path.is_relative_to(root_dir):
+            try:
+                # kind'a backport of is_relative_to method from Python 3.9
+                self.path.relative_to(root_dir)
+            except ValueError:
+                pass
+            else:
                 url = path_to_url(self.path).replace(
                     root_dir.as_posix().lstrip("/"), "${PROJECT_ROOT}",
                 )
